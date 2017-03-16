@@ -18,7 +18,10 @@ import mt.comm.ServerComm;
 import mt.comm.ServerSideMessage;
 import mt.comm.impl.ServerCommImpl;
 import mt.exception.ServerException;
+import mt.exception.EU_Exception;
 import mt.filter.AnalyticsFilter;
+
+import javax.management.monitor.CounterMonitor;
 
 /**
  * MicroTraderServer implementation. This class should be responsible
@@ -31,9 +34,27 @@ public class MicroServer implements MicroTraderServer {
 	
 	public static void main(String[] args) {
 		ServerComm serverComm = new AnalyticsFilter(new ServerCommImpl());
-		MicroTraderServer server = new MicroServer();
-		server.start(serverComm);
+        MicroTraderServer server;
+		if (args.length == 0)  server = new MicroServer(Continent.EU);
+        else {
+            if (args[0].equals("Europa"))  server = new MicroServer(Continent.EU);
+            else if (args[0].equals("USA")) server = new MicroServer(Continent.US);
+            else server = new MicroServer(Continent.AS);
+        }
+        server.start(serverComm);
 	}
+
+	/**
+	 * Identification of the type of server to launch
+	 */
+	public enum Continent {
+		EU, US, AS;
+	}
+
+    /**
+     * Variable that register which server we are using.
+     */
+    private Continent continent;
 
 	public static final Logger LOGGER = Logger.getLogger(MicroServer.class.getName());
 
@@ -48,11 +69,16 @@ public class MicroServer implements MicroTraderServer {
 	private Map<String, Set<Order>> orderMap;
 
 	/**
-	 * Orders that we must track in order to notify clients
+	 * Orders that we must track in order to notify clients .
 	 */
 	private Set<Order> updatedOrders;
 
-	/**
+    /**
+     * Orders that we must track in all the life duration of server
+     */
+    private Set<Order> allOrders;
+
+    /**
 	 * Order Server ID
 	 */
 	private static int id = 1;
@@ -63,12 +89,18 @@ public class MicroServer implements MicroTraderServer {
 	/**
 	 * Constructor
 	 */
-	public MicroServer() {
+	public MicroServer(Continent c) {
 		LOGGER.log(Level.INFO, "Creating the server...");
+        continent = c;
+        LOGGER.log(Level.INFO, "Creation of "+ c + " server...");
 		orderMap = new HashMap<String, Set<Order>>();
 		updatedOrders = new HashSet<>();
+        allOrders = new HashSet<>();
 	}
 
+    /**
+     * @param serverComm the object through which all communication with clients should take place.
+     */
 	@Override
 	public void start(ServerComm serverComm) {
 		serverComm.start();
@@ -107,7 +139,9 @@ public class MicroServer implements MicroTraderServer {
 						processNewOrder(msg);
 					} catch (ServerException e) {
 						serverComm.sendError(msg.getSenderNickname(), e.getMessage());
-					}
+					} catch (EU_Exception e) {
+                        serverComm.sendError(msg.getSenderNickname(), e.getMessage());
+                    }
 					break;
 				default:
 					break;
@@ -214,11 +248,17 @@ public class MicroServer implements MicroTraderServer {
 	 * @param msg
 	 *            the message sent by the client
 	 */
-	private void processNewOrder(ServerSideMessage msg) throws ServerException {
+	private void processNewOrder(ServerSideMessage msg) throws ServerException,EU_Exception {
 		LOGGER.log(Level.INFO, "Processing new order...");
 
 		Order o = msg.getOrder();
-		
+        if (continent == Continent.EU){
+            //check if the order was already registered in the system
+            if (allOrders.contains(o)) throw new EU_Exception();
+            allOrders.add(o);
+        }
+
+
 		// save the order on map
 		saveOrder(o);
 
