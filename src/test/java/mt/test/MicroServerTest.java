@@ -63,7 +63,7 @@ public class MicroServerTest {
 	
 	@Before
 	public void setup(){
-		ms = new MicroServer();
+		ms = new MicroServer(MicroServer.Continent.EU);
 		
 		when(msg1.getType()).thenReturn(Type.CONNECTED);
 		when(msg1.getOrder()).thenReturn(null);
@@ -117,7 +117,7 @@ public class MicroServerTest {
 	@Test
 	public void testMicroServer() throws Exception {
 		ms = null;
-		ms = new MicroServer();
+		ms = new MicroServer(MicroServer.Continent.EU);
 		Assert.assertNotNull(ms);
 	}
 

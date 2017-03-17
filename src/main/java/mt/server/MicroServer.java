@@ -1,5 +1,8 @@
 package mt.server;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -20,8 +23,22 @@ import mt.comm.impl.ServerCommImpl;
 import mt.exception.ServerException;
 import mt.exception.EU_Exception;
 import mt.filter.AnalyticsFilter;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 import javax.management.monitor.CounterMonitor;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerConfigurationException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 
 /**
  * MicroTraderServer implementation. This class should be responsible
@@ -34,12 +51,16 @@ public class MicroServer implements MicroTraderServer {
 	
 	public static void main(String[] args) {
 		ServerComm serverComm = new AnalyticsFilter(new ServerCommImpl());
-        MicroTraderServer server;
+        MicroTraderServer server = null;
 		if (args.length == 0)  server = new MicroServer(Continent.EU);
         else {
+            /**
+             * Checking for args[0] value in order to launch the correct version of the server.
+             */
             if (args[0].equals("Europa"))  server = new MicroServer(Continent.EU);
             else if (args[0].equals("USA")) server = new MicroServer(Continent.US);
-            else server = new MicroServer(Continent.AS);
+            else if (args[0].equals("Asia")) server = new MicroServer(Continent.AS);
+            else server = new MicroServer(Continent.EU);
         }
         server.start(serverComm);
 	}
@@ -132,6 +153,10 @@ public class MicroServer implements MicroTraderServer {
 				case NEW_ORDER:
 					try {
 						verifyUserConnected(msg);
+                        /**
+                         * TODO: finish to implement funcition B1
+                         */
+                        verifyOrder(msg);
 						if(msg.getOrder().getServerOrderID() == EMPTY){
 							msg.getOrder().setServerOrderID(id++);
 						}
@@ -150,8 +175,35 @@ public class MicroServer implements MicroTraderServer {
 		LOGGER.log(Level.INFO, "Shutting Down Server...");
 	}
 
+    /**
+     * Funcition that check if the order is is already in the system. If yes, throws EU_Exception.
+     * @param msg
+     * @throws EU_Exception if find the order in the system
+     */
+    private void verifyOrder(ServerSideMessage msg) throws EU_Exception {
+        Order o  = msg.getOrder();
+        if (continent == Continent.EU){
+            //check if the order was already registered in the system
+            if (findOrder(o)) throw new EU_Exception("Already in the system");
+            allOrders.add(o);
+        }
+    }
 
-	/**
+    /**
+     * Auxiliar boolean function of verifyOrder. For Loop to find (or not) the Order in the system.
+     * @param o
+     * @return
+     */
+    private boolean findOrder(Order o) {
+        for (Order or: allOrders){
+            if (or.getNumberOfUnits() == o.getNumberOfUnits() && or.getPricePerUnit() == o.getPricePerUnit() && or.getStock().equals(o.getStock()) && or.getNickname().equals(o.getNickname()))
+                return true;
+        }
+        return false;
+    }
+
+
+    /**
 	 * Verify if user is already connected
 	 * 
 	 * @param msg
@@ -252,14 +304,6 @@ public class MicroServer implements MicroTraderServer {
 		LOGGER.log(Level.INFO, "Processing new order...");
 
 		Order o = msg.getOrder();
-        if (continent == Continent.EU){
-            //check if the order was already registered in the system
-            if (allOrders.contains(o)) throw new EU_Exception();
-            allOrders.add(o);
-        }
-
-
-		// save the order on map
 		saveOrder(o);
 
 		// if is buy order
@@ -309,7 +353,11 @@ public class MicroServer implements MicroTraderServer {
 		for (Entry<String, Set<Order>> entry : orderMap.entrySet()) {
 			for (Order o : entry.getValue()) {
 				if (o.isBuyOrder() && o.getStock().equals(sellOrder.getStock()) && o.getPricePerUnit() >= sellOrder.getPricePerUnit()) {
-					doTransaction (o, sellOrder);
+					try{
+						doTransaction(sellOrder, o);
+					} catch (Exception e){
+						LOGGER.log(Level.INFO, "An Error Occured in doTransaction");
+					}
 				}
 			}
 		}
@@ -328,32 +376,103 @@ public class MicroServer implements MicroTraderServer {
 		for (Entry<String, Set<Order>> entry : orderMap.entrySet()) {
 			for (Order o : entry.getValue()) {
 				if (o.isSellOrder() && buyOrder.getStock().equals(o.getStock()) && o.getPricePerUnit() <= buyOrder.getPricePerUnit()) {
-					doTransaction(buyOrder, o);
+
+					try{
+						doTransaction(buyOrder, o);
+					} catch (Exception e){
+						LOGGER.log(Level.INFO, "An Error Occured in doTransaction");
+					}
+
 				}
 			}
 		}
-
 	}
 
 	/**
-	 * Process the transaction between buyer and seller
+	 * Process the transaction between buyer and seller. It save persistencely on MicrotraderPersistence.xml all the transaction that
+     * occurred in the server.
 	 * 
 	 * @param buyOrder 		Order sent by the client with a number of units of a stock and the price per unit he wants to buy 
 	 * @param sellerOrder	Order sent by the client with a number of units of a stock and the price per unit he wants to sell
 	 */
 	private void doTransaction(Order buyOrder, Order sellerOrder) {
 		LOGGER.log(Level.INFO, "Processing transaction between seller and buyer...");
+        Element newElement; File inputFile; Document doc = null;
 
-		if (buyOrder.getNumberOfUnits() >= sellerOrder.getNumberOfUnits()) {
-			buyOrder.setNumberOfUnits(buyOrder.getNumberOfUnits()
-					- sellerOrder.getNumberOfUnits());
-			sellerOrder.setNumberOfUnits(EMPTY);
-		} else {
-			sellerOrder.setNumberOfUnits(sellerOrder.getNumberOfUnits()
-					- buyOrder.getNumberOfUnits());
-			buyOrder.setNumberOfUnits(EMPTY);
-		}
-		
+        try {
+            if (buyOrder.getNumberOfUnits() >= sellerOrder.getNumberOfUnits()) {
+                buyOrder.setNumberOfUnits(buyOrder.getNumberOfUnits()
+                        - sellerOrder.getNumberOfUnits());
+
+                //Persistence only works with the Continent.AS e Continent.US servers.
+                if (continent != Continent.EU) {
+                    inputFile = new File("MicroTraderPersistence.xml");
+                    DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+                    DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+                    doc = dBuilder.parse(inputFile);
+                    doc.getDocumentElement().normalize();
+
+                    newElement = doc.createElement("Transaction");
+                    newElement.setAttribute("Id_Order", "" + buyOrder.getServerOrderID());
+                    newElement.setAttribute("Stock", buyOrder.getStock());
+                    newElement.setAttribute("Units", "" + sellerOrder.getNumberOfUnits());
+                    newElement.setAttribute("Price", "" + buyOrder.getPricePerUnit());
+
+                    //The Continent.AS server adds also information about the seller and the buyer.
+                    if (continent == Continent.AS) {
+                        newElement.setAttribute("Type", buyOrder.isBuyOrder() ? "Buy" : "Sell");
+                        newElement.setAttribute("Buyer", buyOrder.getNickname());
+                        newElement.setAttribute("Seller", sellerOrder.getNickname());
+                    }
+                    Node n = doc.getDocumentElement();
+                    n.appendChild(newElement);
+                }
+                sellerOrder.setNumberOfUnits(EMPTY);
+            } else {
+                sellerOrder.setNumberOfUnits(sellerOrder.getNumberOfUnits()
+                        - buyOrder.getNumberOfUnits());
+                //Persistence only works with the Continent.AS e Continent.US servers.
+                if (continent != Continent.EU) {
+
+                    inputFile = new File("MicroTraderPersistence.xml");
+                    DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+                    DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+                    doc = dBuilder.parse(inputFile);
+                    doc.getDocumentElement().normalize();
+
+                    newElement = doc.createElement("Transaction");
+                    newElement.setAttribute("Id_Order", "" + sellerOrder.getServerOrderID());
+                    newElement.setAttribute("Stock", sellerOrder.getStock());
+                    newElement.setAttribute("Units", "" + buyOrder.getNumberOfUnits());
+                    newElement.setAttribute("Price", "" + sellerOrder.getPricePerUnit());
+
+                    //The Continent.AS server adds also information about the seller and the buyer.
+                    if (continent == Continent.AS) {
+                        newElement.setAttribute("Type", sellerOrder.isBuyOrder() ? "Buy" : "Sell");
+                        newElement.setAttribute("Buyer", buyOrder.getNickname());
+                        newElement.setAttribute("Seller", sellerOrder.getNickname());
+                    }
+                    Node n = doc.getDocumentElement();
+                    n.appendChild(newElement);
+                }
+                buyOrder.setNumberOfUnits(EMPTY);
+            }
+        } catch (Exception e ){
+            e.printStackTrace();
+        } finally {
+            if (continent != Continent.EU) {
+                try {
+                    //save the information on XML.
+                    Transformer transformer = TransformerFactory.newInstance().newTransformer();
+                    transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+                    StreamResult result = new StreamResult(new FileOutputStream("MicroTraderPersistence.xml"));
+                    DOMSource source = new DOMSource(doc);
+                    transformer.transform(source, result);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
 		updatedOrders.add(buyOrder);
 		updatedOrders.add(sellerOrder);
 	}
