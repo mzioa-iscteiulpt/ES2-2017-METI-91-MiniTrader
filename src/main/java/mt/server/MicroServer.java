@@ -45,7 +45,7 @@ import javax.xml.transform.stream.StreamResult;
  * to do the business logic of stock transactions between buyers and sellers.
  * 
  * @author Group 78
- *
+ * CONTINUOS INTEGRATION I
  */
 public class MicroServer implements MicroTraderServer {
 	
