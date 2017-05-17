@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<XML>
+
+<Transaction Buyer="marco" Id_Order="2" Price="1.0" Seller="lucai" Stock="palle" Type="Buy" Units="10"/>
+<Transaction Buyer="userA" Id_Order="2" Price="21.0" Seller="userB" Stock="ISCTE" Type="Buy" Units="10"/>
+</XML>
