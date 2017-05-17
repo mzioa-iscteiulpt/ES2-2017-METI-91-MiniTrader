@@ -134,7 +134,7 @@ public class MicroServer_EU implements MicroTraderServer {
 						verifyUserConnected(msg);
                         verifyOrder(msg);
                         verifyQuantity(msg);
-                        verifyUnfulfilledSellOrder();
+                        if (msg.getOrder().isSellOrder()) verifyUnfulfilledSellOrder();
 						if(msg.getOrder().getServerOrderID() == EMPTY){
 							msg.getOrder().setServerOrderID(id++);
 						}
@@ -181,7 +181,7 @@ public class MicroServer_EU implements MicroTraderServer {
     /**
      * Function that check if the order is is already in the system. If yes, throws EU_Exception.
      * @param msg
-     * @throws EU_Exception if find the order in the system
+     * @throws WarningException if find the order in the system
      */
     private void verifyOrder(ServerSideMessage msg) throws WarningException {
         Order o  = msg.getOrder();

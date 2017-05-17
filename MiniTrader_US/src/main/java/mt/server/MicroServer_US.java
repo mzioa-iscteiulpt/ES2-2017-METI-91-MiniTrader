@@ -136,7 +136,7 @@ public class MicroServer_US implements MicroTraderServer {
 					try {
 						verifyQuantity(msg);
 						verifyUserConnected(msg);
-						verifyUnfulfilledSellOrder();
+						if (msg.getOrder().isSellOrder()) verifyUnfulfilledSellOrder();
 						if(msg.getOrder().getServerOrderID() == EMPTY){
 							msg.getOrder().setServerOrderID(id++);
 						}
