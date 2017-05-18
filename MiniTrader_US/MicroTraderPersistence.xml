@@ -4,4 +4,14 @@
 <Transaction Buyer="marco" Id_Order="2" Price="1.0" Seller="lucai" Stock="palle" Type="Buy" Units="10"/>
 <Transaction Buyer="userA" Id_Order="2" Price="21.0" Seller="userB" Stock="ISCTE" Type="Buy" Units="10"/>
 <Transaction Buyer="Maria" Id_Order="6" Price="1.0" Seller="Maria" Stock="EDP" Type="Buy" Units="15"/>
+<Transaction Buyer="Maria" Id_Order="2" Price="1.0" Seller="Maria" Stock="maeco" Type="Buy" Units="15"/>
+<Transaction Buyer="Maria" Id_Order="2" Price="1.0" Seller="Maria" Stock="EDP" Type="Buy" Units="15"/>
+<Transaction Buyer="Maria" Id_Order="2" Price="1.0" Seller="Maria" Stock="EDP" Type="Buy" Units="15"/>
+<Transaction Buyer="Manuel" Id_Order="4" Price="1.0" Seller="Maria" Stock="EDP" Type="Buy" Units="12"/>
+<Transaction Buyer="Manuel" Id_Order="2" Price="1.0" Seller="Marco" Stock="EDP" Type="Buy" Units="15"/>
+<Transaction Buyer="Manuel" Id_Order="4" Price="1.0" Seller="Marco" Stock="EDP" Type="Buy" Units="15"/>
+<Transaction Buyer="Manuel" Id_Order="6" Price="1.0" Seller="Marco" Stock="EDP" Type="Buy" Units="15"/>
+<Transaction Buyer="Marco" Id_Order="8" Price="1.0" Seller="Marco" Stock="EDP" Type="Buy" Units="15"/>
+<Transaction Buyer="Maria" Id_Order="2" Price="1.0" Seller="Maria" Stock="EDP" Type="Buy" Units="15"/>
+<Transaction Buyer="Maria" Id_Order="4" Price="1.0" Seller="Manuel" Stock="E" Type="Buy" Units="14"/>
 </XML>

@@ -188,7 +188,6 @@ public class MicroServer_EU implements MicroTraderServer {
         //check if the order was already registered in the system
         if (findOrder(o)) throw new WarningException("Order already in the system");
         
-    
     }
 
     /**

@@ -376,7 +376,7 @@ public class MicroServer_US implements MicroTraderServer {
         Document doc = null;
 
         try {
-            if (buyOrder.getNumberOfUnits() >= sellerOrder.getNumberOfUnits()) {
+            if (buyOrder.getNumberOfUnits() > sellerOrder.getNumberOfUnits()) {
                 buyOrder.setNumberOfUnits(buyOrder.getNumberOfUnits()
                         - sellerOrder.getNumberOfUnits());
 
@@ -384,7 +384,12 @@ public class MicroServer_US implements MicroTraderServer {
             
                 sellerOrder.setNumberOfUnits(EMPTY);
             }
-            
+            else if (buyOrder.getNumberOfUnits() == sellerOrder.getNumberOfUnits()){
+            	doc = manageXMLFileBuyOrder(buyOrder, sellerOrder);
+            	sellerOrder.setNumberOfUnits(EMPTY);
+            	buyOrder.setNumberOfUnits(EMPTY);
+            	
+            }
             else {
             	
                 sellerOrder.setNumberOfUnits(sellerOrder.getNumberOfUnits()
