@@ -447,9 +447,7 @@ public class MicroServer_US implements MicroTraderServer {
 		//The Continent.AS server adds also information about the seller and the buyer.
 		
 		newElement.setAttribute("Type", sellerOrder.isBuyOrder() ? "Buy" : "Sell");
-		newElement.setAttribute("Buyer", buyOrder.getNickname());
-		newElement.setAttribute("Seller", sellerOrder.getNickname());
-            
+		
 		Node n = doc.getDocumentElement();
 		n.appendChild(newElement);
 		return doc;
@@ -476,8 +474,7 @@ public class MicroServer_US implements MicroTraderServer {
 		//The Continent.AS server adds also information about the seller and the buyer.
 		    
 		newElement.setAttribute("Type", buyOrder.isBuyOrder() ? "Buy" : "Sell");
-		newElement.setAttribute("Buyer", buyOrder.getNickname());
-		newElement.setAttribute("Seller", sellerOrder.getNickname());
+		
          
 		Node n = doc.getDocumentElement();
 		n.appendChild(newElement);
