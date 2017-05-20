@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <XML>
 
+<Transaction Id_Order="6" Price="1.0" Stock="EDP" Type="Buy" Units="15"/>
 </XML>
